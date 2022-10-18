@@ -1,4 +1,5 @@
 import calendar
+import sys
 from datetime import datetime
 
 import paho.mqtt.client as mqtt
@@ -11,16 +12,16 @@ from src.proto.prometheus_pb2 import (
 
 
 class PrometheusRemoteWrite(object):
-    def __init__(self, url):
+    def __init__(self, url: str):
         self.url = url
 
-    def dt2ts(self, dt):
+    def dt2ts(self, dt: datetime):
         """Converts a datetime object to UTC timestamp
         naive datetime will be considered UTC.
         """
         return calendar.timegm(dt.utctimetuple())
 
-    def write(self, name, labels, value, timestamp=None):
+    def write(self, name: str, labels: dict, value: int or float, timestamp: datetime = None):
         if not timestamp:
             timestamp = datetime.utcnow()
 
@@ -57,7 +58,7 @@ class PrometheusRemoteWrite(object):
 
 class SubscribeMetricsClient(mqtt.Client):
 
-    def __init__(self, subscribe_prefix, prometheus_remote_write_url):
+    def __init__(self, subscribe_prefix: str, prometheus_remote_write_url: str):
         self.prometheus_remote_write_url = prometheus_remote_write_url
         self.subscribe_prefix = subscribe_prefix
         self.remote_write = PrometheusRemoteWrite(self.prometheus_remote_write_url)
@@ -73,20 +74,27 @@ class SubscribeMetricsClient(mqtt.Client):
         labels = {}
 
         if len(split_topic) < 1:
-            print('skip message. not have name. [{msg.topic}]')
+            print('Skip this message. Not have metric_name. [{msg.topic}]')
             return
-        if len(split_topic) > 2:
-            labels = dict(zip(split_topic[2::2], split_topic[3::2]))
 
         metric_name = split_topic[1]
+        labels = dict(zip(split_topic[2::2], split_topic[3::2]))
+
         print(metric_name, labels, msg.payload)
         self.remote_write.write(metric_name, labels, float(msg.payload))
 
 
-if __name__ == '__main__':
+def main():
     url = "http://localhost:10908/api/v1/receive"
     prefix = "metrics"
 
-    client = SubscribeMetricsClient(prefix, url)
-    client.connect("localhost", 1883, 60)
-    client.loop_forever()
+    try:
+        client = SubscribeMetricsClient(prefix, url)
+        client.connect("localhost", 1883, 60)
+        client.loop_forever()
+    except KeyboardInterrupt:
+        sys.exit(0)
+
+
+if __name__ == '__main__':
+    main()
