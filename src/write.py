@@ -1,13 +1,8 @@
 from datetime import datetime
-from prometheus_pb2 import (
-    TimeSeries,
-    Label,
-    Labels,
-    Sample,
+from src.proto.prometheus_pb2 import (
     WriteRequest
 )
 import calendar
-import logging
 import requests
 import snappy
 
@@ -26,7 +21,7 @@ def write():
     label = series.labels.add()
     label.name = "__name__"
     label.value = "metric_name"
-    
+
     # as many labels you like
     label = series.labels.add()
     label.name = "ssl_cipher"
