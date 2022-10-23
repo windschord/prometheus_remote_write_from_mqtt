@@ -2,10 +2,8 @@ name: Docker Image CI
 
 on:
   push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
-
+    tags:
+      - "v*.*.*"
 jobs:
 
   build:
@@ -14,7 +12,6 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-    - name: checkout
 
     - name: Set up Docker Buildx
       id: buildx
