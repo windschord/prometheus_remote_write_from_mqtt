@@ -1,4 +1,6 @@
+import argparse
 import calendar
+import os
 import sys
 from datetime import datetime
 
@@ -6,7 +8,7 @@ import paho.mqtt.client as mqtt
 import requests
 import snappy
 
-from src.proto.prometheus_pb2 import (
+from proto.prometheus_pb2 import (
     WriteRequest
 )
 
@@ -84,17 +86,28 @@ class SubscribeMetricsClient(mqtt.Client):
         self.remote_write.write(metric_name, labels, float(msg.payload))
 
 
-def main():
-    url = "http://localhost:10908/api/v1/receive"
-    prefix = "metrics"
-
+def main(mqtt_host: str, mqtt_port: int, mqtt_topic_prefix: str, remote_write_url: str):
     try:
-        client = SubscribeMetricsClient(prefix, url)
-        client.connect("localhost", 1883, 60)
+        client = SubscribeMetricsClient(mqtt_topic_prefix, remote_write_url)
+        client.connect(mqtt_host, mqtt_port, 60)
         client.loop_forever()
     except KeyboardInterrupt:
         sys.exit(0)
 
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser(description='Prometheus remote_write from MQTT tool')
+    parser.add_argument('--mqtt_host', metavar='N', type=str, nargs='+',
+                        default=os.getenv('MQTT_HOST', 'localhost'),
+                        help='mqtt broker host')
+    parser.add_argument('--mqtt_port', metavar='N', type=int, nargs='+',
+                        default=os.getenv('MQTT_PORT', 1883),
+                        help='mqtt broker port')
+    parser.add_argument('--mqtt_topic_prefix', metavar='N', type=str, nargs='+',
+                        default=os.getenv('MQTT_TOPIC_PREFIX', 'metrics'),
+                        help='mqtt subscribe topic prefix')
+    parser.add_argument('--remote_write_url', metavar='N', type=str, nargs='+',
+                        default=os.getenv('REMOTE_WRITE_URL', 'http://localhost:10908/api/v1/receive'),
+                        help='prometheus remote_write url')
+    args = parser.parse_args()
+    main(**vars(args))
