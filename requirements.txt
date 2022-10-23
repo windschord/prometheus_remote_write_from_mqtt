@@ -1,0 +1,4 @@
+ctypes-snappy==1.2
+protobuf==3.20.3
+requests==2.28.1
+paho-mqtt==1.6.1
